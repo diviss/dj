@@ -1,0 +1,360 @@
+import Leap,sys
+from Leap import CircleGesture, KeyTapGesture, ScreenTapGesture, SwipeGesture
+import time
+import SendKeys
+
+a = 0
+b = 0
+c = 0
+d = 0
+h = 0
+v = 0
+v_flag=0
+play1 = 1
+samp = 1
+samp1 = 1 
+mute = 1
+effect = 1
+loop = 8
+reverb = 1
+fd = 1
+pha = 1
+brk = 1
+z = 0
+x = 0
+ww = 1
+v = time.clock()
+
+class SampleListener(Leap.Listener):
+    def on_init(self, controller):
+        print "Initialized"
+
+    def on_connect(self, controller):
+        print "Connected"
+
+        # Enable gestures
+        controller.enable_gesture(Leap.Gesture.TYPE_CIRCLE);
+        controller.enable_gesture(Leap.Gesture.TYPE_KEY_TAP);
+        controller.enable_gesture(Leap.Gesture.TYPE_SCREEN_TAP);
+        controller.enable_gesture(Leap.Gesture.TYPE_SWIPE);
+
+    def on_disconnect(self, controller):
+        # Note: not dispatched when running in a debugger.
+        print "Disconnected"
+
+    def on_exit(self, controller):
+        print "Exited"
+
+    def on_frame(self, controller):
+        # Get the most recent frame and report some basic information
+        frame = controller.frame()
+        global a, mute, loop, effect, samp, play1, z, x
+        global b, c, d, h, ww, fd, reverb, pha, brk, v,v_flag
+
+
+        if not frame.hands.is_empty:
+            # Get the first hand
+            hand = frame.hands[0]
+
+            # Check if the hand has any fingers
+            fingers = hand.fingers
+            if not fingers.is_empty:
+                # Calculate the hand's average finger tip position
+                avg_pos = Leap.Vector()
+                for finger in fingers:
+                    avg_pos += finger.tip_position
+                avg_pos /= len(fingers)
+##                print "Hand has %d fingers, average finger tip position: %s" % (
+##                      len(fingers), avg_pos)
+
+            # Get the hand's sphere radius and palm position
+#            print "Hand sphere radius: %f mm, palm position: %s" % (
+#                  hand.sphere_radius, hand.palm_position)
+
+            # Get the hand's normal vector and direction
+            normal = hand.palm_normal
+            direction = hand.direction
+
+
+
+            # Gestures
+            for gesture in frame.gestures():
+                if gesture.type == Leap.Gesture.TYPE_CIRCLE:
+                    circle = CircleGesture(gesture)
+
+                    # Determine clock direction using the angle between the pointable and the circle normal
+                    if circle.pointable.direction.angle_to(circle.normal) <= Leap.PI/4:
+                        clockwiseness = "clockwise"
+                    else:
+                        clockwiseness = "counterclockwise"
+
+                    # Calculate the angle swept since the last frame
+                    swept_angle = 0
+                    if circle.state != Leap.Gesture.STATE_START:
+                        previous_update = CircleGesture(controller.frame(1).gesture(circle.id))
+                        swept_angle =  (circle.progress - previous_update.progress) * 2 * Leap.PI
+
+                        if len(frame.fingers) <= 2 and hand.palm_position.z > 50 and -100 < hand.palm_position.x < 100 and len(frame.hands) == 1:
+#                             print "ready for circle"
+                                 if clockwiseness == "clockwise" and time.time() - z > 0.1:
+                                     print "change deck to right "
+                                     SendKeys.SendKeys('0')
+                                     z = time.time()
+                                     
+                                 if clockwiseness == "counterclockwise" and time.time() - x > 0.1 :
+                                     print "change deck to left"
+                                     SendKeys.SendKeys('9')
+                                     x = time.time()
+                                     
+##                                     
+####                            if 80 < circle.radius < 200 and time.time() - d > 2:
+####                                 if clockwiseness == "clockwise":
+####                                     print "increase volume"
+####                                     SendKeys.SendKeys('l')
+####                                     d = time.time()
+####
+####                                 if clockwiseness == "counterclockwise":
+####                                     print "decrease volume"
+####                                     SendKeys.SendKeys('p')
+####                                     d = time.time()
+##
+####                        else:
+###                            print" fuck off"
+##
+###                    print "Circle id: %d, %s, progress: %f, radius: %f, angle: %f degrees, %s" % (
+###                           gesture.id, self.state_string(gesture.state),
+###                            circle.progress, circle.radius, swept_angle * Leap.RAD_TO_DEG, clockwiseness)
+##
+                if gesture.type == Leap.Gesture.TYPE_SWIPE:
+                    swipe = SwipeGesture(gesture)
+
+
+                    if hand.palm_position.z < 100 and -150 < hand.palm_position.x < 150 and time.time() - a > 0.2 and len(frame.fingers) >= 3:
+                        if -1.0 < swipe.direction.x < -0.8:
+                            print "move fadder left"
+                            a = time.time()
+                            SendKeys.SendKeys('8')
+                            SendKeys.SendKeys('/')
+                        if 0.8 < swipe.direction.x < 1:
+                            print "move fadder right"
+                            SendKeys.SendKeys('7')
+                            SendKeys.SendKeys('/')
+                            a = time.time()
+
+
+                    if time.time() - c > 0.3 and len(frame.hands) > 1 and -200 < hand.palm_position.x < 200:
+                            if -1.0 < swipe.direction.y < -0.6:
+                                print "volume down"
+                                SendKeys.SendKeys('p')
+                                c = time.time()
+                            if 0.6 < swipe.direction.y < 1:
+                                print "volume up"
+                                SendKeys.SendKeys('l')
+                                c = time.time()
+
+                                
+
+##                     if hand.palm_position.y < 200 and -100 < hand.palm_position.x < 100:
+                                
+##                    if len(frame.fingers) >= 3 and len(frame.hands) > 1 and -100 < hand.palm_position.x < 100 :#and time.time() - b > 1
+##                            if -1.0 < swipe.direction.z < -0.6:
+##                                print "scratch forward "
+##                                SendKeys.SendKeys('v')
+##                                b = time.time()
+##                            if 0.6 < swipe.direction.z < 1:
+##                                print " scratch backward "
+##                                b = time.time() 
+##                                SendKeys.SendKeys('b')
+                                
+                    
+#                    print "Swipe id: %d, state: %s, position: %s, direction: %s, speed: %f" % (
+#                            gesture.id, self.state_string(gesture.state),
+#                            swipe.position, swipe.direction, swipe.speed)
+
+                if gesture.type == Leap.Gesture.TYPE_KEY_TAP:
+                    keytap = KeyTapGesture(gesture)
+                    print "%s  %s "%(keytap.position.z,keytap.position.x)
+#                    print "Key Tap id: %d, %s, position: %s, direction: %s" % (
+#                            gesture.id, self.state_string(gesture.state),
+#                            keytap.position, keytap.direction )
+
+
+##                    if len(frame.fingers) < 4 and len(frame.hands) == 1 and keytap.position.z > 50:
+
+                    if len(frame.fingers) < 4 and len(frame.hands) == 1 and keytap.position.z > 50:
+                        print "%s"%(keytap.position.z)
+                        if -300 < keytap.position.x < -50 and keytap.position.y > 200:
+                                if play1 == 1:
+                                    print "Play_pause"
+                                    SendKeys.SendKeys('m')
+                                    SendKeys.SendKeys('z')
+                                    SendKeys.SendKeys('m')
+                                    play1 = 0
+                                elif play1 == 0:
+                                    print "Play_pause"
+                                    SendKeys.SendKeys('m')
+                                    play1 = 0
+                                    
+
+                        if 0 < keytap.position.x < 150 and keytap.position.y > 200:
+                                print "deck change"
+                                SendKeys.SendKeys('z')        
+
+                        if 150 < keytap.position.x < 300 and keytap.position.y > 200:
+                                print "add new song to deck"
+                                SendKeys.SendKeys('{DOWN}')
+                                SendKeys.SendKeys('{ENTER}')
+
+
+                                                           
+                    if keytap.position.x < 50 and keytap.position.y < 200 and keytap.position.z > 0:
+                                print "In Loop"
+                                if loop == 8:
+                                    SendKeys.SendKeys('3')
+                                    loop = 4
+                                    
+                                elif loop == 4:
+                                    SendKeys.SendKeys('2')
+                                    loop = 2
+                                    
+                                elif loop == 2:
+                                    SendKeys.SendKeys('1')
+                                    loop = 1
+                                    
+                                elif loop == 1:
+                                    SendKeys.SendKeys('5')
+                                    loop = 5
+                                    
+                                elif loop == 5:
+                                    SendKeys.SendKeys('4')
+                                    loop = 8
+
+                    if 50 < keytap.position.x and keytap.position.y < 200 and keytap.position.z > 0:
+                                print "Out of loop"
+                                SendKeys.SendKeys('%8')
+                                loop = 8
+
+                                
+                if gesture.type == Leap.Gesture.TYPE_SCREEN_TAP:
+                    screentap = ScreenTapGesture(gesture)
+
+
+                    if screentap.position.z < 100:
+
+                        if screentap.position.x < -50 and screentap.position.y > 180:
+                               print "Flanger effect"
+                               if reverb == 1:
+                                   SendKeys.SendKeys('a')
+                                   reverb = 0
+
+                               elif reverb == 0:
+                                    SendKeys.SendKeys('s')
+                                    reverb = 1
+                        
+
+##                        if screentap.position.x < -100 and screentap.position.y > 180:
+##                                print "flanger effects"
+##                                
+##                                if effect == 1:
+##                                    SendKeys.SendKeys('a')
+##                                    effect = 2
+##                                
+##                                elif effect == 2:
+##                                    SendKeys.SendKeys('s')
+##                                    effect = 1
+                                
+                        if screentap.position.x > 50 and screentap.position.y > 180:
+                                print "dsp_phaser effect"
+                                if pha == 1:
+                                    SendKeys.SendKeys('g')
+                                    pha = 0
+                                    
+                                elif pha == 0:
+                                    SendKeys.SendKeys('h')
+                                    pha = 1
+
+                        if screentap.position.x < -50 and screentap.position.y < 180:
+                                print "dsp_WhaWha effect"
+                                if ww == 1:
+                                    SendKeys.SendKeys('%0')
+                                    ww = 0
+                                    
+                                elif ww == 0:
+                                    SendKeys.SendKeys('%9')
+                                    ww = 1
+
+                        if screentap.position.x > 50 and screentap.position.y < 180:
+                                print "double flipping effect"
+                                if brk == 1:
+                                    SendKeys.SendKeys('j')
+                                    brk = 0
+                                    
+                                elif brk == 0:
+                                    SendKeys.SendKeys('k')
+                                    brk = 1
+
+
+##                        if screentap.position.x > 100:
+##                                print "flipping double effect"
+##                                if fd == 1:
+##                                    SendKeys.SendKeys('j')
+##                                    fd = 0
+##
+##                                elif fd == 0:
+##                                    SendKeys.SendKeys('k')
+##                                    fd = 1
+
+##                        if screentap.position.x < -100 and screentap.position.y < 180:
+##                                print "Sample song 1"
+##                                SendKeys.SendKeys('t')
+##                                    
+##                        if screentap.position.x > 100 and screentap.position.y < 180:
+##                                print "Sample song 2"
+##                                SendKeys.SendKeys('y')
+                                    
+
+
+                    
+#                    print "Screen Tap id: %d, %s, position: %s, direction: %s" % (
+#                            gesture.id, self.state_string(gesture.state),
+#                            screentap.position, screentap.direction )
+
+#        if not (frame.hands.is_empty and frame.gestures().is_empty):
+#            print ""
+
+    def state_string(self, state):
+        if state == Leap.Gesture.STATE_START:
+            return "STATE_START"
+
+        if state == Leap.Gesture.STATE_UPDATE:
+            return "STATE_UPDATE"
+
+        if state == Leap.Gesture.STATE_STOP:
+            return "STATE_STOP"
+
+        if state == Leap.Gesture.STATE_INVALID:
+            return "STATE_INVALID"
+
+def main():
+    
+    # Create a sample listener and controller
+    listener = SampleListener()
+    controller = Leap.Controller()
+
+    controller.set_policy_flags(Leap.Controller.POLICY_BACKGROUND_FRAMES)
+
+    # Have the sample listener receive events from the controller
+    controller.add_listener(listener)
+
+
+    # Keep this process running until Enter is pressed
+
+    print "Press Enter to quit..."
+    sys.stdin.readline()
+
+    # Remove the sample listener when done
+    controller.remove_listener(listener)
+
+
+if __name__ == "__main__":
+    main()
